@@ -1,8 +1,35 @@
-import { Button, Card, Checkbox, Flex, Form, Input, Layout, Space } from "antd";
+import {
+  Alert,
+  Button,
+  Card,
+  Checkbox,
+  Flex,
+  Form,
+  Input,
+  Layout,
+  Space,
+} from "antd";
 import { LockFilled, UserOutlined, LockOutlined } from "@ant-design/icons";
 import Logo from "../../components/icons/Logo";
+import { useMutation } from "@tanstack/react-query";
+import { Credentials } from "../../types";
+import { login } from "../../http/api";
 
-const Login = () => {
+const loginUser = async (credentials: Credentials) => {
+  // server call login
+  const { data } = await login(credentials);
+  return data;
+};
+
+const LoginPage = () => {
+  const { mutate, isPending, isError, error } = useMutation({
+    mutationKey: ["login"],
+    mutationFn: loginUser,
+    onSuccess: async () => {
+      console.log("Login successful");
+    },
+  });
+
   return (
     <>
       <Layout
@@ -35,10 +62,19 @@ const Login = () => {
             }
           >
             <Form
-              initialValues={{
-                remember: true,
+              initialValues={{ remember: true }}
+              onFinish={(values) => {
+                mutate({ email: values.username, password: values.password });
+                console.log({ values });
               }}
             >
+              {isError && (
+                <Alert
+                  style={{ marginBottom: 24 }}
+                  type="error"
+                  message={error.message}
+                />
+              )}
               <Form.Item
                 name="username"
                 rules={[
@@ -78,6 +114,7 @@ const Login = () => {
                   type="primary"
                   htmlType="submit"
                   style={{ width: "100%" }}
+                  loading={isPending}
                 >
                   Log in
                 </Button>
@@ -90,14 +127,4 @@ const Login = () => {
   );
 };
 
-export default Login;
-
-{
-  /* <h1>Sign in</h1>
-      <input type="text" placeholder="Username" />
-      <input type="password" placeholder="Password" />
-      <button>Login</button>
-      <label htmlFor="remember-me">Remember me</label>
-      <input id="remember-me" type="checkbox" />
-      <a href="#">Forgot Password</a> */
-}
+export default LoginPage;
