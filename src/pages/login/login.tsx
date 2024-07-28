@@ -39,6 +39,14 @@ const LoginPage = () => {
     enabled: false,
   });
 
+  const { mutate: logoutMutate } = useMutation({
+    mutationKey: ["logout"],
+    mutationFn: logout,
+    onSuccess: async () => {
+      logoutFromStore();
+    },
+  });
+
   const { mutate, isPending, isError, error } = useMutation({
     mutationKey: ["login"],
     mutationFn: loginUser,
@@ -46,8 +54,7 @@ const LoginPage = () => {
       const selfDataPromise = await refetch();
       // logout or redirect to client ui if user is customer and not admin or manager
       if (!isAllowed(selfDataPromise.data)) {
-        await logout();
-        logoutFromStore();
+        logoutMutate();
         return;
       }
       setUser(selfDataPromise.data);
