@@ -7,6 +7,7 @@ const NonAuth = () => {
   if (user !== null) {
     return <Navigate to="/" replace />;
   }
+
   return (
     <div>
       <h1>NonAuth component</h1>
