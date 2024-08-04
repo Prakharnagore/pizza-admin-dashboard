@@ -20,6 +20,7 @@ import { foodIcon } from "../components/icons/FoodIcon";
 import BasketIcon from "../components/icons/BasketIcon";
 import { useMutation } from "@tanstack/react-query";
 import { logout } from "../http/api";
+import UserIcon from "../components/icons/UserIcon";
 
 const items = [
   {
@@ -27,7 +28,11 @@ const items = [
     icon: <Icon component={Home} />,
     label: <NavLink to="/">Home</NavLink>,
   },
-
+  {
+    key: "/users",
+    icon: <Icon component={UserIcon} />,
+    label: <NavLink to="/users">Users</NavLink>,
+  },
   {
     key: "/products",
     icon: <Icon component={foodIcon} />,
@@ -46,7 +51,7 @@ const items = [
 ];
 
 const Dashboard = () => {
-  const { logout: logoutFromStore } = useAuthStore();
+  const { user, logout: logoutFromStore } = useAuthStore();
 
   const { mutate: logoutMutate } = useMutation({
     mutationKey: ["logout"],
@@ -60,8 +65,6 @@ const Dashboard = () => {
   const {
     token: { colorBgContainer },
   } = theme.useToken();
-
-  const { user } = useAuthStore();
 
   if (user == null) {
     return <Navigate to="/auth/login" replace />;
@@ -99,7 +102,12 @@ const Dashboard = () => {
             }}
           >
             <Flex gap="middle" justify="space-between" align="start">
-              <Badge text="Global" status="success" />
+              <Badge
+                text={
+                  user.role === "admin" ? "You are an admin" : user.tenant?.name
+                }
+                status="success"
+              />
               <Space size={16}>
                 <Badge dot={true}>
                   <BellFilled />
@@ -130,7 +138,7 @@ const Dashboard = () => {
           </Header>
           <Content
             style={{
-              margin: "0 16px",
+              margin: "24px",
             }}
           >
             <Outlet />
