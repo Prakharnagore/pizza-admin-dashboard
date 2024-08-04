@@ -22,33 +22,49 @@ import { useMutation } from "@tanstack/react-query";
 import { logout } from "../http/api";
 import UserIcon from "../components/icons/UserIcon";
 
-const items = [
-  {
-    key: "/",
-    icon: <Icon component={Home} />,
-    label: <NavLink to="/">Home</NavLink>,
-  },
-  {
-    key: "/users",
-    icon: <Icon component={UserIcon} />,
-    label: <NavLink to="/users">Users</NavLink>,
-  },
-  {
-    key: "/products",
-    icon: <Icon component={foodIcon} />,
-    label: <NavLink to="/products">Products</NavLink>,
-  },
-  {
-    key: "/orders",
-    icon: <Icon component={BasketIcon} />,
-    label: <NavLink to="/orders">Orders</NavLink>,
-  },
-  {
-    key: "/promos",
-    icon: <Icon component={GiftIcon} />,
-    label: <NavLink to="/promos">Promos</NavLink>,
-  },
-];
+const getMenuItems = (role: string) => {
+  const baseItems = [
+    {
+      key: "/",
+      icon: <Icon component={Home} />,
+      label: <NavLink to="/">Home</NavLink>,
+    },
+
+    {
+      key: "/products",
+      icon: <Icon component={foodIcon} />,
+      label: <NavLink to="/products">Products</NavLink>,
+    },
+    {
+      key: "/orders",
+      icon: <Icon component={BasketIcon} />,
+      label: <NavLink to="/orders">Orders</NavLink>,
+    },
+    {
+      key: "/promos",
+      icon: <Icon component={GiftIcon} />,
+      label: <NavLink to="/promos">Promos</NavLink>,
+    },
+  ];
+
+  if (role === "admin") {
+    const menus = [...baseItems];
+    menus.splice(1, 0, {
+      key: "/users",
+      icon: <Icon component={UserIcon} />,
+      label: <NavLink to="/users">Users</NavLink>,
+    });
+    menus.splice(2, 0, {
+      key: "/restaurants",
+      icon: <Icon component={foodIcon} />,
+      label: <NavLink to="/restaurants">Restaurants</NavLink>,
+    });
+
+    return menus;
+  }
+
+  return baseItems;
+};
 
 const Dashboard = () => {
   const { user, logout: logoutFromStore } = useAuthStore();
@@ -69,6 +85,8 @@ const Dashboard = () => {
   if (user == null) {
     return <Navigate to="/auth/login" replace />;
   }
+
+  const items = getMenuItems(user.role);
 
   return (
     <div>
