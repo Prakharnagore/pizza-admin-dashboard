@@ -1,4 +1,4 @@
-import { Breadcrumb, Button, Drawer, Space, Table } from "antd";
+import { Breadcrumb, Button, Drawer, Form, Space, Table, theme } from "antd";
 import { Link, Navigate } from "react-router-dom";
 import { RightOutlined } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
@@ -8,6 +8,7 @@ import { useAuthStore } from "../../store";
 import { UserFilter } from "./UserFilter";
 import { useState } from "react";
 import { PlusOutlined } from "@ant-design/icons";
+import UserForm from "./forms/UserForm";
 
 const columns = [
   {
@@ -40,6 +41,10 @@ const columns = [
 ];
 
 const Users = () => {
+  const {
+    token: { colorBgLayout },
+  } = theme.useToken();
+
   const [drawerOpen, setDrawerOpen] = useState(false);
   const {
     data: users,
@@ -96,7 +101,12 @@ const Users = () => {
               <Button type="primary">Submit</Button>
             </Space>
           }
-        ></Drawer>
+          styles={{ body: { backgroundColor: colorBgLayout } }}
+        >
+          <Form layout="vertical">
+            <UserForm />
+          </Form>
+        </Drawer>
       </Space>
     </>
   );
