@@ -114,6 +114,7 @@ const Users = () => {
           title="Create user"
           width={720}
           destroyOnClose={true}
+          styles={{ body: { backgroundColor: colorBgLayout } }}
           open={drawerOpen}
           onClose={() => {
             form.resetFields();
@@ -134,7 +135,6 @@ const Users = () => {
               </Button>
             </Space>
           }
-          styles={{ body: { backgroundColor: colorBgLayout } }}
         >
           <Form layout="vertical" form={form}>
             <UserForm />

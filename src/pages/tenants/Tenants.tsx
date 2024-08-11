@@ -1,12 +1,14 @@
-import { Breadcrumb, Button, Drawer, Space, Table } from "antd";
+import { Breadcrumb, Button, Drawer, Form, Space, Table, theme } from "antd";
 import { Link, Navigate } from "react-router-dom";
 import { RightOutlined } from "@ant-design/icons";
-import { useQuery } from "@tanstack/react-query";
-import { getTenants } from "../../http/api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createTenant, getTenants } from "../../http/api";
 import { useAuthStore } from "../../store";
 import { useState } from "react";
 import { PlusOutlined } from "@ant-design/icons";
 import TenantFilter from "./TenantFilter";
+import TenantForm from "./form/TenantForm";
+import { CreateTenantData } from "../../types";
 
 const columns = [
   {
@@ -26,11 +28,17 @@ const columns = [
   },
 ];
 
-const Users = () => {
-  const [drawerOpen, setDrawerOpen] = useState(false);
+const Tenants = () => {
+  const [form] = Form.useForm();
+  const { user } = useAuthStore();
+  const queryClient = useQueryClient();
 
   const {
-    data: users,
+    token: { colorBgLayout },
+  } = theme.useToken();
+
+  const {
+    data: tenants,
     isLoading,
     isError,
     error,
@@ -41,7 +49,24 @@ const Users = () => {
     },
   });
 
-  const { user } = useAuthStore();
+  const { mutate: tenantMutate } = useMutation({
+    mutationKey: ["tenant"],
+    mutationFn: async (data: CreateTenantData) =>
+      createTenant(data).then((res) => res.data),
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ["tenants"] });
+      return;
+    },
+  });
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const onHandleSubmit = async () => {
+    await form.validateFields();
+    await tenantMutate(form.getFieldsValue());
+    form.resetFields();
+    setDrawerOpen(false);
+  };
 
   if (user?.role !== "admin") {
     return <Navigate to="/" replace />;
@@ -72,25 +97,40 @@ const Users = () => {
             Add Restaurant
           </Button>
         </TenantFilter>
-        <Table columns={columns} dataSource={users} rowKey="id" />
+        <Table columns={columns} dataSource={tenants} rowKey="id" />
         <Drawer
           title="Create restaurant"
           width={720}
           destroyOnClose={true}
+          styles={{ body: { backgroundColor: colorBgLayout } }}
           open={drawerOpen}
           onClose={() => {
+            form.resetFields();
             setDrawerOpen(false);
           }}
           extra={
             <Space>
-              <Button>Cancel</Button>
-              <Button type="primary">Submit</Button>
+              <Button
+                onClick={() => {
+                  form.resetFields();
+                  setDrawerOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="primary" onClick={onHandleSubmit}>
+                Submit
+              </Button>
             </Space>
           }
-        ></Drawer>
+        >
+          <Form layout="vertical" form={form}>
+            <TenantForm />
+          </Form>
+        </Drawer>
       </Space>
     </>
   );
 };
 
-export default Users;
+export default Tenants;
