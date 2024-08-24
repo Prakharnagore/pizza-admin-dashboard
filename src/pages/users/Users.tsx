@@ -19,7 +19,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { createUser, getUsers } from "../../http/api";
-import { CreateUserData, User } from "../../types";
+import { CreateUserData, FieldData, User } from "../../types";
 import { useAuthStore } from "../../store";
 import { UserFilter } from "./UserFilter";
 import { useState } from "react";
@@ -60,6 +60,8 @@ const columns = [
 
 const Users = () => {
   const [form] = useForm();
+  const [filterForm] = useForm();
+
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
@@ -81,8 +83,11 @@ const Users = () => {
   } = useQuery({
     queryKey: ["users", queryParams],
     queryFn: () => {
+      const filteredParams = Object.fromEntries(
+        Object.entries(queryParams).filter((item) => !!item[1])
+      );
       const queryString = new URLSearchParams(
-        queryParams as unknown as Record<string, string>
+        filteredParams as unknown as Record<string, string>
       ).toString();
       return getUsers(queryString).then((res) => res.data);
     },
@@ -106,6 +111,15 @@ const Users = () => {
     await userMutate(form.getFieldsValue());
     form.resetFields();
     setDrawerOpen(false);
+  };
+
+  const onFilterChange = (changedFields: FieldData[]) => {
+    const changedFilterFields = changedFields
+      .map((item) => ({
+        [item.name[0]]: item.value,
+      }))
+      .reduce((acc, item) => ({ ...acc, ...item }), {});
+    setQueryParams((prev) => ({ ...prev, ...changedFilterFields }));
   };
 
   if (user?.role !== "admin") {
@@ -132,19 +146,17 @@ const Users = () => {
             <Typography.Text type="danger">{error.message}</Typography.Text>
           )}
         </Flex>
-        <UserFilter
-          onFilterChange={(filterName, filterValue) => {
-            console.log({ filterName, filterValue });
-          }}
-        >
-          <Button
-            onClick={() => setDrawerOpen(true)}
-            type="primary"
-            icon={<PlusOutlined />}
-          >
-            Add User
-          </Button>
-        </UserFilter>
+        <Form form={filterForm} onFieldsChange={onFilterChange}>
+          <UserFilter>
+            <Button
+              onClick={() => setDrawerOpen(true)}
+              type="primary"
+              icon={<PlusOutlined />}
+            >
+              Add User
+            </Button>
+          </UserFilter>
+        </Form>
         <Table
           columns={columns}
           dataSource={users?.data}
