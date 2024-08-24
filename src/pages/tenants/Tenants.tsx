@@ -172,6 +172,9 @@ const Tenants = () => {
             total: tenants?.total,
             pageSize: queryParams.perPage,
             current: queryParams.currentPage,
+            showTotal: (total: number, range: number[]) => {
+              return `Showing ${range[0]} - ${range[1]} of ${total} items`;
+            },
             onChange: (page) => {
               console.log(page);
               setQueryParams((prev) => {
