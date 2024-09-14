@@ -22,13 +22,19 @@ import ProductsFilter from "./ProductsFilter";
 import { FieldData, Product } from "../../types";
 import React, { useState } from "react";
 import { PER_PAGE } from "../../constants";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { getProducts } from "../../http/api";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { createProduct, getProducts } from "../../http/api";
 import { format } from "date-fns";
 import { debounce } from "lodash";
 import { useAuthStore } from "../../store";
 import { useForm } from "antd/es/form/Form";
 import ProductForm from "./forms/ProductForm";
+import { makeFormData } from "./helpers";
 
 const columns = [
   {
@@ -85,6 +91,7 @@ const Products = () => {
   const {
     token: { colorBgLayout },
   } = theme.useToken();
+  const queryClient = useQueryClient();
 
   const [form] = useForm();
   const [filterForm] = Form.useForm();
@@ -137,7 +144,98 @@ const Products = () => {
     }
   };
 
-  const onHandleSubmit = () => {};
+  const { mutate: productMutate, isPending: isCreateLoading } = useMutation({
+    mutationKey: ["product"],
+    mutationFn: async (data: FormData) => {
+      if (selectedProduct) {
+        // edit mode
+        // return updateProduct(data, selectedProduct._id).then((res) => res.data);
+      } else {
+        return createProduct(data).then((res) => res.data);
+      }
+    },
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      form.resetFields();
+      setDrawerOpen(false);
+      return;
+    },
+  });
+
+  const onHandleSubmit = async () => {
+    /*
+    const dummy = {
+        Size: { priceType: 'base', availableOptions: { Small: 400, Medium: 600, Large: 800 } },
+        Crust: { priceType: 'aditional', availableOptions: { Thin: 50, Thick: 100 } },
+    };
+   */
+    /*
+    const currentData = {
+        '{"configurationKey":"Size","priceType":"base"}': {
+            Small: 100,
+            Medium: 200,
+            Large: 400,
+        },
+        '{"configurationKey":"Crust","priceType":"aditional"}': {
+            Thin: 0,
+            Thick: 50,
+        },
+    };
+    */
+    await form.validateFields();
+    const priceConfiguration = form.getFieldValue("priceConfiguration");
+    const pricing = Object.entries(priceConfiguration).reduce(
+      (acc, [key, value]) => {
+        const parsedKey = JSON.parse(key);
+        return {
+          ...acc,
+          [parsedKey.configurationKey]: {
+            priceType: parsedKey.priceType,
+            availableOptions: value,
+          },
+        };
+      },
+      {}
+    );
+    const categoryId = form.getFieldValue("categoryId");
+    /*
+     const currentAttrs = {
+            isHit: 'No',
+            Spiciness: 'Less',
+        };
+     */
+    /*
+    const attrs = [
+        { name: 'Is Hit', value: true },
+        { name: 'Spiciness', value: 'Hot' },
+    ];
+     */
+    const attributes = Object.entries(form.getFieldValue("attributes")).map(
+      ([key, value]) => {
+        return {
+          name: key,
+          value: value,
+        };
+      }
+    );
+
+    const postData = {
+      ...form.getFieldsValue(),
+      tenantId:
+        user!.role === "manager"
+          ? user?.tenant?.id
+          : form.getFieldValue("tenantId"),
+      isPublish: form.getFieldValue("isPublish") ? true : false,
+      image: form.getFieldValue("image"),
+      categoryId,
+      priceConfiguration: pricing,
+      attributes,
+    };
+
+    const formData = makeFormData(postData);
+
+    await productMutate(formData);
+  };
 
   return (
     <>
@@ -201,7 +299,6 @@ const Products = () => {
             pageSize: queryParams.limit,
             current: queryParams.page,
             onChange: (page) => {
-              console.log(page);
               setQueryParams((prev) => {
                 return {
                   ...prev,
@@ -210,7 +307,6 @@ const Products = () => {
               });
             },
             showTotal: (total: number, range: number[]) => {
-              console.log(total, range);
               return `Showing ${range[0]}-${range[1]} of ${total} items`;
             },
           }}
@@ -241,7 +337,7 @@ const Products = () => {
               <Button
                 type="primary"
                 onClick={onHandleSubmit}
-                // loading={isCreateLoading}
+                loading={isCreateLoading}
               >
                 Submit
               </Button>
