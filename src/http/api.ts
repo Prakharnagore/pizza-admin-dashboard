@@ -25,3 +25,5 @@ export const updateUser = (user: CreateUserData, id: string) =>
 export const getCategories = () => api.get(`${CATALOG_SERVICE}/categories`);
 export const getProducts = (queryString: string) =>
   api.get(`${CATALOG_SERVICE}/products?${queryString}`);
+export const getCategory = (id: string) =>
+  api.get(`${CATALOG_SERVICE}/categories/${id}`);

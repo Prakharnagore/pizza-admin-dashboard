@@ -1,6 +1,7 @@
 import {
   Breadcrumb,
   Button,
+  Drawer,
   Flex,
   Form,
   Image,
@@ -8,6 +9,7 @@ import {
   Spin,
   Table,
   Tag,
+  theme,
   Typography,
 } from "antd";
 import {
@@ -18,13 +20,15 @@ import {
 import { Link } from "react-router-dom";
 import ProductsFilter from "./ProductsFilter";
 import { FieldData, Product } from "../../types";
-import React from "react";
+import React, { useState } from "react";
 import { PER_PAGE } from "../../constants";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getProducts } from "../../http/api";
 import { format } from "date-fns";
 import { debounce } from "lodash";
 import { useAuthStore } from "../../store";
+import { useForm } from "antd/es/form/Form";
+import ProductForm from "./forms/ProductForm";
 
 const columns = [
   {
@@ -78,9 +82,15 @@ const columns = [
 ];
 
 const Products = () => {
-  const [filterForm] = Form.useForm();
+  const {
+    token: { colorBgLayout },
+  } = theme.useToken();
 
+  const [form] = useForm();
+  const [filterForm] = Form.useForm();
   const { user } = useAuthStore();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedProduct, setCurrentProduct] = useState<Product | null>(null);
 
   const [queryParams, setQueryParams] = React.useState({
     limit: PER_PAGE,
@@ -127,6 +137,8 @@ const Products = () => {
     }
   };
 
+  const onHandleSubmit = () => {};
+
   return (
     <>
       <Space direction="vertical" size="large" style={{ width: "100%" }}>
@@ -151,7 +163,11 @@ const Products = () => {
 
         <Form form={filterForm} onFieldsChange={onFilterChange}>
           <ProductsFilter>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => {}}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setDrawerOpen(true)}
+            >
               Add Product
             </Button>
           </ProductsFilter>
@@ -165,7 +181,12 @@ const Products = () => {
               render: (_, record: Product) => {
                 return (
                   <Space>
-                    <Button type="link" onClick={() => {}}>
+                    <Button
+                      type="link"
+                      onClick={() => {
+                        setCurrentProduct(record);
+                      }}
+                    >
                       Edit
                     </Button>
                   </Space>
@@ -194,6 +215,43 @@ const Products = () => {
             },
           }}
         />
+
+        <Drawer
+          title={selectedProduct ? "Update Product" : "Add Product"}
+          width={720}
+          styles={{ body: { backgroundColor: colorBgLayout } }}
+          destroyOnClose={true}
+          open={drawerOpen}
+          onClose={() => {
+            setCurrentProduct(null);
+            form.resetFields();
+            setDrawerOpen(false);
+          }}
+          extra={
+            <Space>
+              <Button
+                onClick={() => {
+                  setCurrentProduct(null);
+                  form.resetFields();
+                  setDrawerOpen(false);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                onClick={onHandleSubmit}
+                // loading={isCreateLoading}
+              >
+                Submit
+              </Button>
+            </Space>
+          }
+        >
+          <Form layout="vertical" form={form}>
+            <ProductForm form={form} />
+          </Form>
+        </Drawer>
       </Space>
     </>
   );
