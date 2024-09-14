@@ -13,7 +13,7 @@ const Attributes = ({ selectedCategory }: PricingProps) => {
     queryFn: () => {
       return getCategory(selectedCategory).then((res) => res.data);
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5, // 5 minutes - again get fresh data after 5 mins
   });
 
   if (!fetchedCategory) return null;

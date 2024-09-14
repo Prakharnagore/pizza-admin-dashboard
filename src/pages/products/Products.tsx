@@ -20,7 +20,7 @@ import {
 import { Link } from "react-router-dom";
 import ProductsFilter from "./ProductsFilter";
 import { FieldData, Product } from "../../types";
-import React, { useState } from "react";
+import React from "react";
 import { PER_PAGE } from "../../constants";
 import {
   keepPreviousData,
@@ -32,7 +32,6 @@ import { createProduct, getProducts } from "../../http/api";
 import { format } from "date-fns";
 import { debounce } from "lodash";
 import { useAuthStore } from "../../store";
-import { useForm } from "antd/es/form/Form";
 import ProductForm from "./forms/ProductForm";
 import { makeFormData } from "./helpers";
 
@@ -88,16 +87,56 @@ const columns = [
 ];
 
 const Products = () => {
+  const [filterForm] = Form.useForm();
+  const [form] = Form.useForm();
+
+  const [selectedProduct, setCurrentProduct] = React.useState<Product | null>(
+    null
+  );
+
+  React.useEffect(() => {
+    if (selectedProduct) {
+      setDrawerOpen(true);
+
+      console.log("seletedProduct", selectedProduct.priceConfiguration);
+
+      const priceConfiguration = Object.entries(
+        selectedProduct.priceConfiguration
+      ).reduce((acc, [key, value]) => {
+        const stringifiedKey = JSON.stringify({
+          configurationKey: key,
+          priceType: value.priceType,
+        });
+
+        return {
+          ...acc,
+          [stringifiedKey]: value.availableOptions,
+        };
+      }, {});
+
+      const attributes = selectedProduct.attributes.reduce((acc, item) => {
+        return {
+          ...acc,
+          [item.name]: item.value,
+        };
+      }, {});
+
+      form.setFieldsValue({
+        ...selectedProduct,
+        priceConfiguration,
+        attributes,
+        // todo: fix this
+        categoryId: selectedProduct.category._id,
+      });
+    }
+  }, [selectedProduct, form]);
+
+  const { user } = useAuthStore();
+
   const {
     token: { colorBgLayout },
   } = theme.useToken();
-  const queryClient = useQueryClient();
-
-  const [form] = useForm();
-  const [filterForm] = Form.useForm();
-  const { user } = useAuthStore();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedProduct, setCurrentProduct] = useState<Product | null>(null);
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
 
   const [queryParams, setQueryParams] = React.useState({
     limit: PER_PAGE,
@@ -143,7 +182,7 @@ const Products = () => {
       setQueryParams((prev) => ({ ...prev, ...changedFilterFields, page: 1 }));
     }
   };
-
+  const queryClient = useQueryClient();
   const { mutate: productMutate, isPending: isCreateLoading } = useMutation({
     mutationKey: ["product"],
     mutationFn: async (data: FormData) => {
@@ -163,26 +202,25 @@ const Products = () => {
   });
 
   const onHandleSubmit = async () => {
-    /*
-    const dummy = {
-        Size: { priceType: 'base', availableOptions: { Small: 400, Medium: 600, Large: 800 } },
-        Crust: { priceType: 'aditional', availableOptions: { Thin: 50, Thick: 100 } },
-    };
-   */
-    /*
-    const currentData = {
-        '{"configurationKey":"Size","priceType":"base"}': {
-            Small: 100,
-            Medium: 200,
-            Large: 400,
-        },
-        '{"configurationKey":"Crust","priceType":"aditional"}': {
-            Thin: 0,
-            Thick: 50,
-        },
-    };
-    */
+    // const dummy = {
+    //     Size: { priceType: 'base', availableOptions: { Small: 400, Medium: 600, Large: 800 } },
+    //     Crust: { priceType: 'aditional', availableOptions: { Thin: 50, Thick: 100 } },
+    // };
+
+    // const currentData = {
+    //     '{"configurationKey":"Size","priceType":"base"}': {
+    //         Small: 100,
+    //         Medium: 200,
+    //         Large: 400,
+    //     },
+    //     '{"configurationKey":"Crust","priceType":"aditional"}': {
+    //         Thin: 0,
+    //         Thick: 50,
+    //     },
+    // };
+
     await form.validateFields();
+
     const priceConfiguration = form.getFieldValue("priceConfiguration");
     const pricing = Object.entries(priceConfiguration).reduce(
       (acc, [key, value]) => {
@@ -197,19 +235,18 @@ const Products = () => {
       },
       {}
     );
+
     const categoryId = form.getFieldValue("categoryId");
-    /*
-     const currentAttrs = {
-            isHit: 'No',
-            Spiciness: 'Less',
-        };
-     */
-    /*
-    const attrs = [
-        { name: 'Is Hit', value: true },
-        { name: 'Spiciness', value: 'Hot' },
-    ];
-     */
+    // const currentAttrs = {
+    //     isHit: 'No',
+    //     Spiciness: 'Less',
+    // };
+
+    // const attrs = [
+    //     { name: 'Is Hit', value: true },
+    //     { name: 'Spiciness', value: 'Hot' },
+    // ];
+
     const attributes = Object.entries(form.getFieldValue("attributes")).map(
       ([key, value]) => {
         return {
@@ -233,7 +270,6 @@ const Products = () => {
     };
 
     const formData = makeFormData(postData);
-
     await productMutate(formData);
   };
 
@@ -261,13 +297,17 @@ const Products = () => {
 
         <Form form={filterForm} onFieldsChange={onFilterChange}>
           <ProductsFilter>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setDrawerOpen(true)}
-            >
-              Add Product
-            </Button>
+            {user!.role === "admin" && (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => {
+                  setDrawerOpen(true);
+                }}
+              >
+                Add Product
+              </Button>
+            )}
           </ProductsFilter>
         </Form>
 
@@ -299,6 +339,7 @@ const Products = () => {
             pageSize: queryParams.limit,
             current: queryParams.page,
             onChange: (page) => {
+              console.log(page);
               setQueryParams((prev) => {
                 return {
                   ...prev,
@@ -307,6 +348,7 @@ const Products = () => {
               });
             },
             showTotal: (total: number, range: number[]) => {
+              console.log(total, range);
               return `Showing ${range[0]}-${range[1]} of ${total} items`;
             },
           }}
