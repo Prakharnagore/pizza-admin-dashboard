@@ -1,12 +1,14 @@
 import { Breadcrumb, Flex, message, Space, Table, Tag, Typography } from "antd";
 import { RightOutlined } from "@ant-design/icons";
 import { Link } from "react-router-dom";
-import { Order } from "../../types";
+import { Order, OrderEvents, PaymentMode, PaymentStatus } from "../../types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getOrders } from "../../http/api";
 import { format } from "date-fns";
 import { colorMapping } from "../../constants";
 import { capitalizeFirst } from "../products/helpers";
+import React from "react";
+import socket from "../../lib/socket";
 import { useAuthStore } from "../../store";
 
 const columns = [
@@ -105,6 +107,45 @@ const Orders = () => {
   const queryClient = useQueryClient();
 
   const [messageApi, contextHolder] = message.useMessage();
+
+  React.useEffect(() => {
+    if (user?.tenant) {
+      socket.on("order-update", (data) => {
+        // todo: data.event_type =
+        if (
+          (data.event_type === OrderEvents.ORDER_CREATE &&
+            data.data.paymentMode === PaymentMode.CASH) ||
+          (data.event_type === OrderEvents.PAYMENT_STATUS_UPDATE &&
+            data.data.paymentStatus === PaymentStatus.PAID &&
+            data.data.paymentMode === PaymentMode.CARD)
+        ) {
+          queryClient.setQueryData(["orders"], (old: Order[]) => [
+            data.data,
+            ...old,
+          ]);
+          messageApi.open({
+            type: "success",
+            content: "New Order Received.",
+          });
+        }
+
+        console.log("data received: ", data);
+      });
+
+      socket.on("join", (data) => {
+        console.log("User joined in: ", data.roomId);
+      });
+
+      socket.emit("join", {
+        tenantId: user.tenant.id,
+      });
+    }
+
+    return () => {
+      socket.off("join");
+      socket.off("order-update");
+    };
+  }, []);
 
   const { data: orders } = useQuery({
     queryKey: ["orders"],
