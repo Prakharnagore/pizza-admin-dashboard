@@ -9,7 +9,6 @@ export type User = {
   firstName: string;
   lastName: string;
   createdAt: string;
-  updatedAt: string;
   tenant: Tenant | null;
 };
 
@@ -28,14 +27,14 @@ export type Tenant = {
   address: string;
 };
 
+export type FieldData = {
+  name: string[];
+  value?: string;
+};
+
 export type CreateTenantData = {
   name: string;
   address: string;
-};
-
-export type FieldData = {
-  name: string;
-  value?: string;
 };
 
 export interface PriceConfiguration {
@@ -78,3 +77,70 @@ export type Product = {
 
 export type ImageField = { file: File };
 export type CreateProductData = Product & { image: ImageField };
+
+export enum OrderStatus {
+  RECEIVED = "received",
+  CONFIRMED = "confirmed",
+  PREPARED = "prepared",
+  OUT_FOR_DELIVERY = "out_for_delivery",
+  DELIVERED = "delivered",
+}
+
+export enum PaymentStatus {
+  PENDING = "pending",
+  PAID = "paid",
+  FAILED = "failed",
+}
+
+export enum PaymentMode {
+  CARD = "card",
+  CASH = "cash",
+}
+
+export type Topping = {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+};
+
+export interface CartItem
+  extends Pick<Product, "_id" | "name" | "image" | "priceConfiguration"> {
+  chosenConfiguration: {
+    priceConfiguration: {
+      [key: string]: string;
+    };
+    selectedToppings: Topping[];
+  };
+  qty: number;
+}
+
+export interface Customer {
+  _id: string;
+  firstName: string;
+  lastName: string;
+}
+export interface Order {
+  _id: string;
+  image: any;
+  cart: CartItem[];
+  customerId: Customer;
+  total: number;
+  discount: number;
+  taxes: number;
+  deliveryCharges: number;
+  address: string;
+  tenantId: string;
+  comment?: string;
+  paymentMode: PaymentMode;
+  orderStatus: OrderStatus;
+  paymentStatus: PaymentStatus;
+  paymentId?: string;
+  createdAt: string;
+}
+
+export enum OrderEvents {
+  ORDER_CREATE = "ORDER_CREATE",
+  PAYMENT_STATUS_UPDATE = "PAYMENT_STATUS_UPDATE",
+  ORDER_STATUS_UPDATE = "ORDER_STATUS_UPDATE",
+}
